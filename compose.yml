@@ -40,12 +40,11 @@ services:
       # We'll expose bufstream on the host at port 9092.
       - "9092:9092"
     healthcheck:
-      # test: nc -z bufstream 9092 || exit -1 # FIXME
-      test: bufstream client --bootstrap-address localhost:9092 metadata || exit -1
+      test: ["CMD", "/usr/local/bin/bufstream", "admin", "status", "--exit-code", "--url", "http://127.0.0.1:9089"]
       start_period: 15s
       interval: 5s
       timeout: 10s
-      retries: 5      
+      retries: 10
     # Edit config/bufstream.yaml within this repository to change configuation.
     volumes:
       - "./config/bufstream.yaml:/bufstream.yaml"
@@ -60,14 +59,16 @@ services:
   ###########################################################################
   console:
     image: docker.redpanda.com/redpandadata/console:latest
+    hostname: console
+    container_name: console
     environment:
       KAFKA_BROKERS: 'bufstream:9092'
       KAFKA_CLIENTID: 'rpconsole;broker_count=1'
     ports:
       - 8080:8080
-    # depends_on:
-    #   bufstream:
-    #     condition: service_healthy
+    depends_on:
+      bufstream:
+        condition: service_healthy
   ###########################################################################
   # minio
   ###########################################################################
@@ -94,15 +95,42 @@ services:
       start_interval: 10s
       timeout: 15s
       retries: 5
-    # depends_on:
-    #   traefik:
-    #     condition: service_healthy
+
+  ###########################################################################
+  # clickhouse
+  ###########################################################################
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.9.2
+    hostname: clickhouse
+    container_name: clickhouse
+    profiles: [optional]
+    ports:
+      - 8123:8123
+      - 9010:9000
+      - 9009:9009
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "--tries=3", "--spider", "-q", "localhost:8123/ping"]
+      interval: 5s
+      timeout: 3s
+    volumes:
+      - clickhouse:/var/lib/clickhouse
   ###########################################################################
   # arroyo service
   ###########################################################################
   arroyo:
     image: ghcr.io/arroyosystems/arroyo:latest
     # image: ghcr.io/arroyosystems/arroyo-single:latest
+    hostname: arroyo
+    container_name: arroyo
     environment:
       - DATABASE_HOST=postgres
       - DATABASE_NAME=postgres
@@ -119,11 +147,12 @@ services:
         condition: service_healthy
       # minio:
       #   condition: service_healthy
-      # bufstream:
-      #   condition: service_healthy
+      bufstream:
+        condition: service_healthy
 ###########################################################################
 # volumes
 ###########################################################################
 volumes:
   pg_data: {}
   minio: {}
+  clickhouse: {}
