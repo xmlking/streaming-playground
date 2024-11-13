@@ -1,0 +1,8 @@
+disable-telemetry = true
+# checkpoint-url = 's3://my-bucket/checkpoints'
+
+[database]
+type = 'postgres'
+
+[database.postgres]
+host = 'postgres'
