@@ -23,12 +23,12 @@ rpk profile create local \
 
 ### Registry Endpoints
 
-- <<http://localhost:8081/status/ready>
+- <http://localhost:8081/status/ready>
 - <http://localhost:8081/config>
 - <http://localhost:8081/mode>
 - <http://localhost:8081/schemas/types>
 - <http://localhost:8081/subjects>
-- <<http://localhost:8081//schemas/ids/{id}>
+- <http://localhost:8081//schemas/ids/{id}>
 
 ## RPK Commands
 
