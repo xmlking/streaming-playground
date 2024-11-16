@@ -1,4 +1,5 @@
 # yaml-language-server: $schema=schema/buf.bufstream.config.v1alpha1.BufstreamConfig.schema.json
+# https://github.com/jepsen-io/bufstream/blob/main/resources/bufstream.yaml
 cluster: demo
 zone: localhost
 in_memory: true
@@ -10,10 +11,12 @@ kafka:
     host: 0.0.0.0
     port: 9092
 observability:
-  trace_exporter: NONE
-  metrics_exporter: NONE
+  ## DEBUG|INFO|WARN|ERROR
   log_level: INFO
+  ## TEXT|JSON
   log_format: TEXT
+  metrics_exporter: NONE
+  trace_exporter: NONE
   debug_address:
     host: 0.0.0.0
 # data_enforcement:

@@ -30,54 +30,31 @@ services:
       timeout: 15s
       retries: 5
   ###########################################################################
-  # kafka broker + schema registry
-  # Open:
-  # https://redpanda.localhost.direct/
+  # bufstream service
   ###########################################################################
-  redpanda:
-    image: redpandadata/redpanda:v24.2.10
-    hostname: redpanda
-    container_name: redpanda
-    restart: unless-stopped
-    expose:
-      - 8081
-      - 8082
-      - 9644
-      - 9092
-      - 29092
+  bufstream:
+    image: us-docker.pkg.dev/buf-images-1/bufstream-public/images/bufstream:0.2.0
+    hostname: bufstream
+    container_name: bufstream
     ports:
-      - "8081:8081"
-      - "8082:8082"
+      # We'll expose bufstream on the host at port 9092.
       - "9092:9092"
-      - "9644:9644"
-    volumes:
-      - redpanda:/var/lib/redpanda/data
-    command:
-      - redpanda
-      - start
-      - --overprovisioned
-      - --smp
-      - "1"
-      - --memory
-      - "1G"
-      - --reserve-memory
-      - "0M"
-      - --node-id
-      - "0"
-      - --kafka-addr
-      - PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
-      - --advertise-kafka-addr
-      - PLAINTEXT://redpanda:29092,OUTSIDE://redpanda:9092
-      - --check=false
-      - --advertise-pandaproxy-addr redpanda:8082
-      - --set redpanda.enable_transactions=true
-      - --set redpanda.enable_idempotence=true
     healthcheck:
-      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
-      interval: 15s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
+      test: ["CMD", "/usr/local/bin/bufstream", "admin", "status", "--exit-code", "--url", "http://127.0.0.1:9089"]
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    # Edit config/bufstream.yaml within this repository to change configuation.
+    volumes:
+      - "./config/bufstream.yaml:/bufstream.yaml"
+    command: [
+      "--config", "/bufstream.yaml",
+      "--config.kafka.public_address.host", "bufstream",
+      "--config.kafka.public_address.port", "9092",
+      "--config.kafka.address.host", "0.0.0.0",
+      "--config.kafka.address.port", "9092",
+    ]
   ###########################################################################
   # Redpanda Console
   ###########################################################################
@@ -86,12 +63,12 @@ services:
     hostname: console
     container_name: console
     environment:
-      KAFKA_BROKERS: 'redpanda:29092'
+      KAFKA_BROKERS: 'bufstream:9092'
       KAFKA_CLIENTID: 'rpconsole;broker_count=1'
     ports:
       - 8080:8080
     depends_on:
-      redpanda:
+      bufstream:
         condition: service_healthy
   ###########################################################################
   # minio
@@ -171,7 +148,7 @@ services:
         condition: service_healthy
       # minio:
       #   condition: service_healthy
-      redpanda:
+      bufstream:
         condition: service_healthy
 ###########################################################################
 # volumes
@@ -180,4 +157,3 @@ volumes:
   pg_data: {}
   minio: {}
   clickhouse: {}
-  redpanda: {}

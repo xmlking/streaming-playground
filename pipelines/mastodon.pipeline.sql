@@ -14,6 +14,7 @@ WITH (
     connector = 'blackhole'
 );
 
+INSERT INTO output_table
 WITH post_filtering AS (
     SELECT
         id
@@ -21,14 +22,7 @@ WITH post_filtering AS (
         , arrow_cast(REGEXP_LIKE(content, 'trumps?', 'i'), 'Int64') AS trump_mentioned
     FROM mastodon
 )
-
-SELECT  TUMBLE(interval '30 seconds') AS window
-    , SUM(harris_mentioned) AS number_of_post_mention_harris
-    , SUM(trump_mentioned) AS number_of_post_mention_trump
-FROM post_filtering
-GROUP BY window
-
-INSERT INTO output_table
+SELECT
     TUMBLE(interval '30 seconds') AS window
     , SUM(harris_mentioned) AS number_of_post_mention_harris
     , SUM(trump_mentioned) AS number_of_post_mention_trump
