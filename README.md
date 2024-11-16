@@ -12,7 +12,7 @@ brew install redpanda-data/tap/redpanda
 rpk generate shell-completion zsh > "${fpath[1]}/_rpk"
 ```
 
-Create profile to connect to local redpanda kafka cluster
+Create rpk **profile** to connect to **local** redpanda kafka cluster
 
 ```shell
 rpk profile create local \
@@ -85,7 +85,7 @@ CREATE TABLE customer_source (
     connector = 'kafka',
     format = 'json',
     type = 'source',
-    bootstrap_servers = 'bufstream:9092',
+    bootstrap_servers = 'redpanda:9092',
     topic = 'customer-source'
 );
 
@@ -96,7 +96,7 @@ CREATE TABLE customer_sink (
     connector = 'kafka',
     format = 'json',
     type = 'sink',
-    bootstrap_servers = 'bufstream:9092',
+    bootstrap_servers = 'redpanda:9092',
     topic = 'customer-sink'
 );
 
