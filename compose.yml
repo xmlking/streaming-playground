@@ -35,7 +35,7 @@ services:
   # https://redpanda.localhost.direct/
   ###########################################################################
   redpanda:
-    image: redpandadata/redpanda:v24.2.10
+    image: redpandadata/redpanda:v24.3.1
     hostname: redpanda
     container_name: redpanda
     restart: unless-stopped
@@ -91,7 +91,7 @@ services:
   # http://console.localhost.direct/admin/metrics
   ###########################################################################
   console:
-    image: redpandadata/console:v2.8.0-beta.1
+    image: redpandadata/console:v2.8.0
     hostname: console
     container_name: console
     entrypoint: /bin/sh
@@ -128,7 +128,7 @@ services:
     hostname: connect
     container_name: connect
     profiles: [optional]
-    image: redpandadata/connect:4.39.0
+    image: redpandadata/connect:4.43.1
     environment:
         KAFKA_SEED_BROKERS: redpanda:9092
     volumes:

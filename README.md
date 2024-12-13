@@ -125,3 +125,7 @@ publish couple of messages to `customer-source` topic using **Redpanda Console**
 ```
 
 Check any new messages in `customer-sink` topic.
+
+## TODO
+- Try [Redpanda Iceberg Topics for SQL-based analytics with zero ETL](https://github.com/redpanda-data/redpanda-labs/tree/main/docker-compose/iceberg) 
+
