@@ -33,7 +33,7 @@ services:
   # bufstream service
   ###########################################################################
   bufstream:
-    image: us-docker.pkg.dev/buf-images-1/bufstream-public/images/bufstream:0.2.0
+    image: us-docker.pkg.dev/buf-images-1/bufstream-public/images/bufstream:0.3.7
     hostname: bufstream
     container_name: bufstream
     ports:
@@ -74,7 +74,7 @@ services:
   # minio
   ###########################################################################
   minio:
-    image: bitnami/minio:2024.11.7
+    image: bitnami/minio:2025.1.20
     hostname: minio
     container_name: minio
     restart: unless-stopped
@@ -101,7 +101,7 @@ services:
   # clickhouse
   ###########################################################################
   clickhouse:
-    image: clickhouse/clickhouse-server:24.9.2
+    image: clickhouse/clickhouse-server:25.1.2-alpine
     hostname: clickhouse
     container_name: clickhouse
     profiles: [optional]
@@ -150,6 +150,12 @@ services:
       #   condition: service_healthy
       bufstream:
         condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'localhost:5114/status']
+      interval: 10s
+      start_period: 5s
+      timeout: 10s
+      retries: 5
 ###########################################################################
 # volumes
 ###########################################################################

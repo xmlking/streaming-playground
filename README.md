@@ -1,6 +1,6 @@
 # Streaming Playground
 
-Experiment with [Arroyo](https://www.arroyo.dev/), [Redpanda Connect](https://www.redpanda.com/connect), [Bufstream](https://buf.build/product/bufstream)
+Experiment with [Arroyo](https://www.arroyo.dev/), [Redpanda Connect](https://www.redpanda.com/connect), [Bufstream](https://buf.build/product/bufstream), [SQLFlow](https://sql-flow.com/docs/introduction/basics)
 
 ## Prerequisites
 
@@ -111,7 +111,7 @@ GROUP BY age, hop(interval '2 seconds', interval '10 seconds');
 
 ## Test
 
-publish couple of messages to `customer-source` topic using **Redpanda Console** e.g:
+publish a couple of messages to `customer-source` topic using **Redpanda Console** e.g:
 
 > [!IMPORTANT]  
 > Use TYPE: **JSON**
@@ -128,4 +128,5 @@ Check any new messages in `customer-sink` topic.
 
 ## TODO
 - Try [Redpanda Iceberg Topics for SQL-based analytics with zero ETL](https://github.com/redpanda-data/redpanda-labs/tree/main/docker-compose/iceberg) 
-
+- [Build a Streaming CDC Pipeline with MinIO and Redpanda into Snowflake](https://blog.min.io/build-a-streaming-cdc-pipeline-with-minio-and-redpanda-into-snowflake/)
+- [SQLFlow](https://sql-flow.com/docs/introduction/basics) - Enables SQL-based stream-processing, powered by DuckDB.
