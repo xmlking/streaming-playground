@@ -33,11 +33,30 @@ psql "postgresql://postgres:postgres@localhost/postgres?sslmode=require"
 
 ## Start
 
+First time setup
+
+```aiignore
+# pull docker images to local
+docker compose --profile optional pull
+```
+
 ```shell
 docker compose up
+# docker compose --profile optional up
+docker compose ps
 open http://localhost:5115/ # Arroyo Console
 open http://localhost:8080/ # Redpanda Console
 http://localhost:8081/subjects # Redpanda Registry
+docker compose down
+# (DANGER) - shutdown and delete volumes
+docker compose down -v
+```
+
+Benthos example
+
+```shell
+# to start with benthos
+docker compose up connect
 docker compose down
 # (DANGER) - shutdown and delete volumes
 docker compose down -v
