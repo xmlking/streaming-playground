@@ -1,6 +1,13 @@
-# Streaming Playground
+# Streaming Adventures
 
-Experiment with [Arroyo](https://www.arroyo.dev/), [Redpanda Connect](https://www.redpanda.com/connect), [Bufstream](https://buf.build/product/bufstream), [SQLFlow](https://sql-flow.com/docs/introduction/basics)
+Experiment with:
+- [x] [Arroyo](https://www.arroyo.dev/)
+- [x] [Redpanda Connect](https://www.redpanda.com/connect), 
+- [x] [Bufstream](https://buf.build/product/bufstream), [demo](https://github.com/bufbuild/bufstream-demo)
+- [x] [SQLFlow](https://sql-flow.com/docs/introduction/basics)
+- [ ] [Timeplus](https://docs.timeplus.com/proton-howto)
+- [ ] [RisingWave](https://risingwave.com/overview/)
+- [ ] [Tableflow](https://www.confluent.io/product/tableflow/)
 
 ## Prerequisites
 
@@ -46,13 +53,13 @@ docker compose up
 docker compose ps
 open http://localhost:5115/ # Arroyo Console
 open http://localhost:8080/ # Redpanda Console
-http://localhost:8081/subjects # Redpanda Registry
+open http://localhost:8081/subjects # Redpanda Registry
 docker compose down
 # (DANGER) - shutdown and delete volumes
 docker compose down -v
 ```
 
-Benthos example
+**Benthos** example
 
 ```shell
 # to start with benthos

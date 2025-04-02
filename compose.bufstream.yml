@@ -33,7 +33,7 @@ services:
   # bufstream service
   ###########################################################################
   bufstream:
-    image: us-docker.pkg.dev/buf-images-1/bufstream-public/images/bufstream:0.3.7
+    image: bufbuild/bufstream:0.3.16
     hostname: bufstream
     container_name: bufstream
     ports:
@@ -49,6 +49,7 @@ services:
     volumes:
       - "./config/bufstream.yaml:/bufstream.yaml"
     command: [
+      "serve",
       "--config", "/bufstream.yaml",
       "--config.kafka.public_address.host", "bufstream",
       "--config.kafka.public_address.port", "9092",
@@ -59,14 +60,19 @@ services:
   # Redpanda Console
   ###########################################################################
   console:
-    image: docker.redpanda.com/redpandadata/console:latest
+    image: redpandadata/console:v2.8.5
     hostname: console
     container_name: console
     environment:
       KAFKA_BROKERS: 'bufstream:9092'
-      KAFKA_CLIENTID: 'rpconsole;broker_count=1'
+      KAFKA_CLIENTID: 'rpconsole;broker_count=1;host_override=host.docker.internal'
     ports:
       - 8080:8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
     depends_on:
       bufstream:
         condition: service_healthy
@@ -74,7 +80,7 @@ services:
   # minio
   ###########################################################################
   minio:
-    image: bitnami/minio:2025.1.20
+    image: bitnami/minio:2025.3.12
     hostname: minio
     container_name: minio
     restart: unless-stopped
@@ -101,7 +107,7 @@ services:
   # clickhouse
   ###########################################################################
   clickhouse:
-    image: clickhouse/clickhouse-server:25.1.2-alpine
+    image: clickhouse/clickhouse-server:25.3-alpine
     hostname: clickhouse
     container_name: clickhouse
     profiles: [optional]

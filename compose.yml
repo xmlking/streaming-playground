@@ -35,7 +35,7 @@ services:
   # https://redpanda.localhost.direct/
   ###########################################################################
   redpanda:
-    image: redpandadata/redpanda:v24.3.4
+    image: redpandadata/redpanda:v24.3.9
     hostname: redpanda
     container_name: redpanda
     restart: unless-stopped
@@ -91,7 +91,7 @@ services:
   # http://console.localhost.direct/admin/metrics
   ###########################################################################
   console:
-    image: redpandadata/console:v2.8.2
+    image: redpandadata/console:v2.8.5
     hostname: console
     container_name: console
     entrypoint: /bin/sh
@@ -128,7 +128,7 @@ services:
     hostname: connect
     container_name: connect
     profiles: [optional]
-    image: redpandadata/connect:4.46.0
+    image: redpandadata/connect:4
     environment:
         KAFKA_SEED_BROKERS: redpanda:9092
     volumes:
@@ -150,7 +150,7 @@ services:
   # minio
   ###########################################################################
   minio:
-    image: bitnami/minio:2025.1.20
+    image: bitnami/minio:2025.3.12
     hostname: minio
     container_name: minio
     restart: unless-stopped
@@ -177,7 +177,7 @@ services:
   # clickhouse
   ###########################################################################
   clickhouse:
-    image: clickhouse/clickhouse-server:25.1.2-alpine
+    image: clickhouse/clickhouse-server:25.3-alpine
     hostname: clickhouse
     container_name: clickhouse
     profiles: [optional]
@@ -255,6 +255,31 @@ services:
         condition: service_healthy
       console:
         condition: service_healthy
+  ###########################################################################
+  # redis-stack
+  ###########################################################################
+  redis:
+    image: redis/redis-stack:latest
+    hostname: redis
+    container_name: redis
+    profiles: [optional]
+    environment:
+      # make a test user and database
+#      - REDIS_PASSWORD=redis
+      # redis rdb backup config.
+      # Save if 100 keys are added in every 10 seconds: --save 10 100
+      - "REDIS_ARGS=--appendonly yes"
+    ports:
+      - "6379:6379"
+      - "8001:8001"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 10s
+      start_period: 5s
+      timeout: 3s
+      retries: 5
 ###########################################################################
 # volumes
 ###########################################################################
@@ -264,3 +289,4 @@ volumes:
   clickhouse: {}
   redpanda: {}
   sqlflow: {}
+  redis_data: {}
