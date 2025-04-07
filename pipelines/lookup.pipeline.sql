@@ -19,7 +19,7 @@ CREATE TEMPORARY TABLE customers (
 
 CREATE TABLE events (
     event_id TEXT,
-    timestamp TIMESTAMP,
+--     timestamp TIMESTAMP,
     customer_id TEXT,
     event_type TEXT
 ) WITH (
@@ -30,7 +30,8 @@ CREATE TABLE events (
     bootstrap_servers = 'localhost:19092'
 );
 
-SELECT  e.event_id,  e.timestamp,  c.name, c.plan
+-- SELECT  e.event_id,  e.timestamp,  c.name, c.plan
+SELECT  e.event_id,  c.name, c.plan
 FROM  events e
 LEFT JOIN customers c
 -- you may use SQL expressions like concat to generate the exact key

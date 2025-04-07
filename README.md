@@ -90,8 +90,8 @@ Add a new topics
 
 ```shell
 rpk topic list
-rpk topic create -c cleanup.policy=compact -r 1 -p 1 customer-source
-rpk topic create -c cleanup.policy=compact -r 1 -p 1 customer-sink
+rpk topic create -r 1 -p 1 customer-source
+rpk topic create -r 1 -p 1 customer-sink
 ```
 
 ### Arroyo Pipeline
@@ -100,13 +100,13 @@ in from [Arroyo Console](http://localhost:5115/), Create a pipeline with:
 
 > [!WARNING]
 > By default preview doesn't write to sinks to avoid accidentally writing bad data.
-> You can run the pipeline for real by clicking "Launch" or you can enable sinks in preview:
+> You can run the pipeline for real by clicking "Launch" or you can enable web sinks in preview:
 
 ```sql
 CREATE TABLE customer_source (
     name TEXT,
     age INT,
-    phone TEXT,
+    phone TEXT
 ) WITH (
     connector = 'kafka',
     format = 'json',
@@ -117,7 +117,7 @@ CREATE TABLE customer_source (
 
 CREATE TABLE customer_sink (
     count BIGINT,
-    age INT,
+    age INT
 ) WITH (
     connector = 'kafka',
     format = 'json',

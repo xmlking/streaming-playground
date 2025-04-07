@@ -55,6 +55,40 @@ Check RedisInsight [console](http://localhost:8001/redis-stack/browser) for fres
 
 Run python [webApp](../webapp)
 
+## Kafka Source Sink
+
+Read from `customer-source` topic and write to counts group by age to `customer-sink` topic
+
+First start `Redpanda` (kafka) and `Redpanda Console`
+
+```shell
+docker compose up  console
+# to stop
+docker compose down console
+```
+
+Create kafka topics
+
+```shell
+rpk topic list
+rpk topic create -r 1 -p 1 customer-source
+rpk topic create  -r 1 -p 1 customer-sink
+```
+
+Then run [kafka.pipeline.sql](../pipelines/kafka.pipeline.sql)
+
+```shell
+arroyo run pipelines/kafka.pipeline.sql
+```
+
+Publish sample data into kafka topic
+
+```shell
+./scripts/gen_fake_customers.sh
+```
+
+Check any new messages in `customer-sink` topic in  `Redpanda Console`
+
 ### Lookup Joins
 
 This demo showcase [lookup-joins](https://doc.arroyo.dev/sql/joins#lookup-joins)
