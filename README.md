@@ -152,6 +152,127 @@ publish a couple of messages to `customer-source` topic using **Redpanda Console
 
 Check any new messages in `customer-sink` topic.
 
+## Examples
+
+Try more [examples](https://github.com/ArroyoSystems/arroyo/tree/master/crates/arroyo-planner/src/test/queries) in Arroyo Console: http://localhost:5115/
+
+basic_tumble_aggregate
+
+```shell
+CREATE TABLE nexmark WITH (
+    connector = 'nexmark',
+    event_rate = 10
+);
+
+SELECT
+    bid.auction as auction,
+    tumble(INTERVAL '1' second) as window,
+    count(*) as count
+FROM
+    nexmark
+where
+    bid is not null
+GROUP BY
+    1,
+    2
+```
+
+bitcoin_exchange_rate
+
+```shell
+CREATE TABLE coinbase (
+  type TEXT,
+  price TEXT
+) WITH (
+  connector = 'websocket',
+  endpoint = 'wss://ws-feed.exchange.coinbase.com',
+  subscription_message = '{
+      "type": "subscribe",
+      "product_ids": [
+        "BTC-USD"
+      ],
+      "channels": ["ticker"]
+    }',
+      format = 'json'
+);
+
+SELECT avg(CAST(price as FLOAT)) from coinbase
+WHERE type = 'ticker'
+GROUP BY hop(interval '5' second, interval '1 minute');
+```
+
+first_pipeline
+
+```shell
+CREATE TABLE nexmark with (
+    connector = 'nexmark',
+    event_rate = '100'
+);
+
+ 
+
+-- SELECT * from nexmark where auction is not null;
+
+SELECT * FROM (
+    SELECT *, ROW_NUMBER() OVER (
+        PARTITION BY window
+        ORDER BY count DESC) AS row_num
+    FROM (SELECT count(*) AS count, bid.auction AS auction,
+        hop(interval '2 seconds', interval '60 seconds') AS window
+            FROM nexmark WHERE bid is not null
+            GROUP BY 2, window)) WHERE row_num <= 5;
+```
+
+create_table_updating
+
+```shell
+CREATE TABLE nexmark with (
+    connector = 'nexmark',
+    event_rate = '100'
+);
+
+CREATE TABLE bids (
+    auction    BIGINT,
+    bidder     BIGINT,
+    channel    VARCHAR,
+    url        VARCHAR,
+    datetime   DATETIME,
+    avg_price  BIGINT
+) WITH (
+    connector = 'filesystem',
+    type = 'sink',
+    path = '/home/data',
+    format = 'parquet',
+    parquet_compression = 'zstd',
+    rollover_seconds = 60,
+    time_partition_pattern = '%Y/%m/%d/%H',
+    partition_fields = 'bidder'
+);
+
+-- SELECT bid from nexmark where bid is not null;
+
+INSERT INTO bids
+SELECT
+    bid.auction, bid.bidder, bid.channel, bid.url, bid.datetime, bid.price as avg_price
+FROM
+    nexmark
+where
+    bid is not null
+```
+
+
+```shell
+CREATE TABLE nexmark with (
+    connector = 'nexmark',
+    event_rate = '100'
+);
+
+SELECT avg(bid.price) as avg_price
+FROM nexmark
+WHERE bid IS NOT NULL
+GROUP BY hop(interval '2 seconds', interval '10 seconds');
+```
+
 ## TODO
 - Try [Redpanda Iceberg Topics for SQL-based analytics with zero ETL](https://github.com/redpanda-data/redpanda-labs/tree/main/docker-compose/iceberg) 
 - [Build a Streaming CDC Pipeline with MinIO and Redpanda into Snowflake](https://blog.min.io/build-a-streaming-cdc-pipeline-with-minio-and-redpanda-into-snowflake/)

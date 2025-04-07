@@ -219,6 +219,7 @@ services:
       bash -c "/app/arroyo migrate && /app/arroyo cluster"
     volumes:
       - ./config/arroyo.toml:/app/arroyo.toml:ro
+      - ./data/arroyo/data:/home/data
     depends_on:
       postgres:
         condition: service_healthy
