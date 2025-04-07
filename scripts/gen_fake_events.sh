@@ -12,7 +12,7 @@ for ((i=1; i<=NUM_SAMPLES; i++)); do
   EVENT_TYPE=${EVENT_TYPES[$RANDOM % ${#EVENT_TYPES[@]}]}
 
   JSON_PAYLOAD=$(cat <<EOF
-{ "event_id": "$EVENT_ID", "customer_id": "$CUSTOMER_ID", "event_type" "$EVENT_TYPE" }
+{ "event_id": "$EVENT_ID", "customer_id": "$CUSTOMER_ID", "event_type": "$EVENT_TYPE" }
 EOF
   )
 

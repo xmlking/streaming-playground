@@ -1,2 +1,2 @@
-HSET customer:1 name "John Doe" age 30 city "Riverside" plan "Premium"
-HSET customer:2 name "Jane Smith" age 25 city "Los Angeles" plan "Gold"
+SET customer.1 "{\"name\":\"John Doe\", \"age\":30, \"city\":\"Riverside\", \"plan\":\"Premium\" }"
+SET customer.2 "{\"name\":\"Jane Smith\", \"age\":25, \"city\":\"Los Angeles\", \"plan\":\"Gold\" }"
