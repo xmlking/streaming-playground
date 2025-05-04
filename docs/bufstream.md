@@ -17,6 +17,8 @@ docker compose -f compose.bufstream.yml down
 docker compose -f compose.bufstream.yml down -v
 ```
 
+Create a bucket `warehouse` with `public` policy at: http://localhost:9001/buckets
+
 ## References
 
 - [buf-examples](https://github.com/bufbuild/buf-examples)

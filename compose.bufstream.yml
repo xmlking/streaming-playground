@@ -22,6 +22,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
       - pg_data:/var/lib/postgresql/data
+#      - ./config/postgres/initdb.d/:/docker-entrypoint-initdb.d/
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -q']
       interval: 60s
@@ -30,68 +31,25 @@ services:
       timeout: 15s
       retries: 5
   ###########################################################################
-  # bufstream service
-  ###########################################################################
-  bufstream:
-    image: bufbuild/bufstream:0.3.16
-    hostname: bufstream
-    container_name: bufstream
-    ports:
-      # We'll expose bufstream on the host at port 9092.
-      - "9092:9092"
-    healthcheck:
-      test: ["CMD", "/usr/local/bin/bufstream", "admin", "status", "--exit-code", "--url", "http://127.0.0.1:9089"]
-      start_period: 15s
-      interval: 5s
-      timeout: 10s
-      retries: 10
-    # Edit config/bufstream.yaml within this repository to change configuation.
-    volumes:
-      - "./config/bufstream.yaml:/bufstream.yaml"
-    command: [
-      "serve",
-      "--config", "/bufstream.yaml",
-      "--config.kafka.public_address.host", "bufstream",
-      "--config.kafka.public_address.port", "9092",
-      "--config.kafka.address.host", "0.0.0.0",
-      "--config.kafka.address.port", "9092",
-    ]
-  ###########################################################################
-  # Redpanda Console
-  ###########################################################################
-  console:
-    image: redpandadata/console:v2.8.5
-    hostname: console
-    container_name: console
-    environment:
-      KAFKA_BROKERS: 'bufstream:9092'
-      KAFKA_CLIENTID: 'rpconsole;broker_count=1;host_override=host.docker.internal'
-    ports:
-      - 8080:8080
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-    depends_on:
-      bufstream:
-        condition: service_healthy
-  ###########################################################################
   # minio
+  # create the `warehouse` bucket
+  # with "public" policy at: http://localhost:9001/buckets
+  # or: mc mb local/warehouse
   ###########################################################################
   minio:
-    image: bitnami/minio:2025.3.12
+    image: bitnami/minio:2025.4.22
     hostname: minio
     container_name: minio
     restart: unless-stopped
-    profiles: [optional]
     volumes:
       - minio:/bitnami/minio/data
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      MINIO_DEFAULT_BUCKETS: ${MINIO_DEFAULT_BUCKETS:-apps:download,public:public}
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
+      MINIO_DEFAULT_BUCKETS: ${MINIO_DEFAULT_BUCKETS:-bufstream:public,warehouse:public}
+      # MINIO_DOMAIN: local
       MINIO_SKIP_CLIENT: "yes"
+      MINIO_PROMETHEUS_AUTH_TYPE: public
     ports:
       - '9000:9000'
       - '9001:9001'
@@ -102,19 +60,151 @@ services:
       start_interval: 10s
       timeout: 15s
       retries: 5
-
   ###########################################################################
-  # clickhouse
+  # iceberg catalog
+  # http://localhost:8181/v1/config?warehouse=warehouse
+  # http://localhost:8181/v1/namespaces/warehouse
+  # http://localhost:8181/v1/namespaces/warehouse/tables/employee
+  ###########################################################################
+  iceberg:
+    image: apache/iceberg-rest-fixture:1.9.0
+    hostname: iceberg
+    container_name: iceberg
+    restart: unless-stopped
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      AWS_REGION: ${S3_REGION}
+      CATALOG_CATALOG__IMPL: org.apache.iceberg.jdbc.JdbcCatalog
+      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
+      CATALOG_S3_ENDPOINT: http://minio:9000
+      CATALOG_S3_PATH__STYLE__ACCESS: true
+#      CATALOG_URI: jdbc:sqlite:file:/tmp/iceberg_rest_mode=memory
+      CATALOG_URI: jdbc:sqlite:/home/iceberg/iceberg.db
+      CATALOG_WAREHOUSE: ${S3_BUCKET}
+    volumes:
+      - iceberg:/home/iceberg
+    ports:
+      - '8181:8181'
+    depends_on:
+      minio:
+        condition: service_healthy
+  ###########################################################################
+  # bufstream - kafka alternative
+  ###########################################################################
+  bufstream:
+    image: bufbuild/bufstream:0.3.23
+    hostname: bufstream
+    container_name: bufstream
+    restart: unless-stopped
+    environment:
+      BUFSTREAM_KAFKA_HOST: 0.0.0.0
+      BUFSTREAM_KAFKA_PUBLIC_HOST: bufstream
+      BUFSTREAM_KAFKA_PUBLIC_PORT: 9092
+      S3_REGION: ${S3_REGION}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+    ports:
+      - "9092:9092"
+      - "9089:9089"
+    volumes:
+      - "./config/bufstream.yaml:/bufstream.yaml"
+    command: [
+      "serve",
+      "--config", "/bufstream.yaml"
+    ]
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/bufstream", "admin", "status", "--exit-code", "--url", "http://127.0.0.1:9089"]
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    depends_on:
+      iceberg:
+        condition: service_healthy
+  ###########################################################################
+  # Redpanda Console
+  # http://localhost:8080/admin/health
+  # http://localhost:8080/admin/startup
+  # http://localhost:8080/admin/metrics
+  # Docs: https://github.com/redpanda-data/console/blob/master/docs/features/protobuf.md
+  ###########################################################################
+  console:
+    image: redpandadata/console:v3.1.0
+    hostname: console
+    container_name: console
+    environment:
+      KAFKA_BROKERS: 'bufstream:9092'
+      KAFKA_CLIENTID: 'rpconsole;broker_count=1;host_override=bufstream'
+      SCHEMAREGISTRY_ENABLED: 'true'
+      SCHEMAREGISTRY_URLS: https://demo.buf.dev/integrations/confluent/bufstream-demo
+      #KAFKACONNECT_ENABLED: true
+      #KAFKACONNECT_CLUSTERS_NAME: Connectors
+      #KAFKACONNECT_CLUSTERS_URLS: http://connect:8083
+      ## Enables Protobuf deserialization
+      KAFKA_PROTOBUF_ENABLED: 'true'
+      ## Instructs the console to use the Schema Registry rather than the local filesystem for deserialization
+      KAFKA_PROTOBUF_SCHEMAREGISTRY_ENABLED: true
+      ## Provides an interval to refresh schemas from the schema registry.
+      KAFKA_PROTOBUF_REFRESHINTERVAL: 5m
+    ports:
+      - '8080:8080'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/admin/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      bufstream:
+        condition: service_healthy
+  ###########################################################################
+  # arroyo - streaming analytics
+  ###########################################################################
+  arroyo:
+    image: ghcr.io/arroyosystems/arroyo:latest
+    # image: ghcr.io/arroyosystems/arroyo-single:latest
+    hostname: arroyo
+    container_name: arroyo
+    profiles: [optional]
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_NAME=postgres
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - '5115:5115'
+    entrypoint: >
+      bash -c "/app/arroyo migrate && /app/arroyo cluster"
+    volumes:
+      - ./config/arroyo.toml:/app/arroyo.toml:ro
+      - ./data/arroyo/data:/home/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # minio:
+      #   condition: service_healthy
+      bufstream:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'localhost:5114/status']
+      interval: 10s
+      start_period: 5s
+      timeout: 10s
+      retries: 5
+  ###########################################################################
+  # clickhouse - batch analytics
   ###########################################################################
   clickhouse:
-    image: clickhouse/clickhouse-server:25.3-alpine
+    image: clickhouse/clickhouse-server:25.4-alpine
     hostname: clickhouse
     container_name: clickhouse
     profiles: [optional]
     ports:
-      - 8123:8123
-      - 9010:9000
-      - 9009:9009
+      - '8123:8123'
+      - '9010:9000'
+      - '9009:9009'
     environment:
       CLICKHOUSE_USER: ${CLICKHOUSE_USER}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
@@ -130,42 +220,11 @@ services:
       timeout: 3s
     volumes:
       - clickhouse:/var/lib/clickhouse
-  ###########################################################################
-  # arroyo service
-  ###########################################################################
-  arroyo:
-    image: ghcr.io/arroyosystems/arroyo:latest
-    # image: ghcr.io/arroyosystems/arroyo-single:latest
-    hostname: arroyo
-    container_name: arroyo
-    environment:
-      - DATABASE_HOST=postgres
-      - DATABASE_NAME=postgres
-      - DATABASE_USER=postgres
-      - DATABASE_PASSWORD=postgres
-    ports:
-      - 5115:5115
-    entrypoint: >
-      bash -c "/app/arroyo migrate && /app/arroyo cluster"
-    volumes:
-      - ./config/arroyo.toml:/app/arroyo.toml:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
-      # minio:
-      #   condition: service_healthy
-      bufstream:
-        condition: service_healthy
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'localhost:5114/status']
-      interval: 10s
-      start_period: 5s
-      timeout: 10s
-      retries: 5
 ###########################################################################
 # volumes
 ###########################################################################
 volumes:
   pg_data: {}
   minio: {}
+  iceberg: {}
   clickhouse: {}

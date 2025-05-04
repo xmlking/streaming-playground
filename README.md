@@ -3,7 +3,7 @@
 Experiment with:
 - [x] [Arroyo](https://www.arroyo.dev/)
 - [x] [Redpanda Connect](https://www.redpanda.com/connect), 
-- [x] [Bufstream](https://buf.build/product/bufstream), [demo](https://github.com/bufbuild/bufstream-demo)
+- [x] [Bufstream](https://buf.build/product/bufstream), [demo](https://github.com/bufbuild/bufstream-demo), demo with [iceberg](https://github.com/bufbuild/buf-examples/tree/main/bufstream/iceberg-quickstart)
 - [x] [SQLFlow](https://sql-flow.com/docs/introduction/basics)
 - [ ] [Timeplus](https://docs.timeplus.com/proton-howto)
 - [ ] [RisingWave](https://risingwave.com/overview/)
