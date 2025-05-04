@@ -118,9 +118,10 @@ services:
       start_period: 5s
   ###########################################################################
   # Redpanda Console
-  # http://console.localhost.direct/admin/health
-  # http://console.localhost.direct/admin/startup
-  # http://console.localhost.direct/admin/metrics
+  # http://localhost:8080/admin/health
+  # http://localhost:8080/admin/startup
+  # http://localhost:8080/admin/metrics
+  # Docs: https://github.com/redpanda-data/console/blob/master/docs/features/protobuf.md
   ###########################################################################
   console:
     image: redpandadata/console:v3.1.0
