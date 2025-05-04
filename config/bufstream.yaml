@@ -3,6 +3,11 @@
 cluster: demo
 zone: localhost
 in_memory: true
+## for metadata
+#postgres:
+#  cloud_sql_proxy_icn: <gcp-project-name>:<region>:<instance name>
+#  dsn: user=bufstream-service-account@<gcp-project-name>.iam database=bufstream
+
 kafka:
   address:
     host: 0.0.0.0
@@ -15,27 +20,61 @@ observability:
   log_level: INFO
   ## TEXT|JSON
   log_format: TEXT
-  metrics_exporter: NONE
-  trace_exporter: NONE
+  metrics:
+    exporterType: PROMETHEUS
+  traces:
+    exporterType: NONE
   debug_address:
     host: 0.0.0.0
-# data_enforcement:
-#   schema_registries:
-#     - name: csr
-#       confluent:
-#         url: "https://demo.buf.dev/integrations/confluent/bufstream-demo"
-#         instance_name: "bufstream-demo"
-#   produce:
-#     - topics: { all: true }
-#       schema_registry: csr
-#       values:
-#         on_parse_error: REJECT_BATCH
-#         validation:
-#           on_error: REJECT_BATCH
-#   fetch:
-#     - topics: { all: true }
-#       schema_registry: csr
-#       values:
-#         on_parse_error: FILTER_RECORD
-#         redaction:
-#           debug_redact: true
+data_enforcement:
+  schema_registries:
+    - name: csr
+      confluent:
+        url: "https://demo.buf.dev/integrations/confluent/bufstream-demo"
+        instance_name: "bufstream-demo"
+  # This is applied when records are sent to Bufstream.
+  produce:
+    - topics: { all: true }
+      schema_registry: csr
+      values:
+        # If a record is not enveloped, automatically envelope it.
+        coerce: true
+        # If a record cannot be parsed, reject all records in the batch.
+        on_parse_error: REJECT_BATCH
+        # If a schema cannot be found, reject all records in the batch.
+        on_no_schema: REJECT_BATCH
+        # If a record cannot be validated, reject all records in the batch.
+        #validation:
+          #on_error: REJECT_BATCH
+  fetch:
+    - topics: { all: true }
+      schema_registry: csr
+      values:
+        on_parse_error: FILTER_RECORD
+        redaction:
+          debug_redact: true
+
+storage:
+  provider: S3
+  ## Replace it with the region of the configured bucket
+  region: us-west-1
+  ## Replace it with the name of the configured bucket
+  bucket: warehouse
+  force_path_style: true
+  endpoint: http://minio:9000
+  ## If using an access key pair, set these:
+  access_key_id:
+    ## The key ID can be provided inline with the string
+    string: minioadmin
+  ## Secrets can be provided inline as a string, as an environment variable,
+  ## or file path. Only one source should be set:
+  secret_access_key:
+    string: minioadmin
+    # env_var: SECRET_ACCESS_KEY
+    # path: path/to/key
+
+iceberg_integration:
+  catalogs:
+    - name: local-rest-catalog
+      rest:
+        url: http://iceberg:8181
